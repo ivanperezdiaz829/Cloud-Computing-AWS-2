@@ -11,15 +11,15 @@ def lambda_handler(event, context):
             payload = base64.b64decode(record['data']).decode('utf-8')
             data_json = json.loads(payload)
             
-            # 2. Añadir metadatos de procesamiento (Timestamp)
-            # Esto nos servirá para saber cuándo se procesó el registro
+            # 2. Aniadir metadatos de procesamiento (Timestamp)
+            # Esto nos servira para saber cuando se proceso el registro
             processing_time = datetime.datetime.now(datetime.timezone.utc)
             data_json['processed_at'] = processing_time.isoformat()
             
             # 3. Preparar Partition Key para S3 (YYYY-MM-DD)
             partition_date = processing_time.strftime('%Y-%m-%d')
             
-            # 4. Re-codificar para Firehose (Debe terminar en salto de línea para JSON Lines)
+            # 4. Re-codificar para Firehose (Debe terminar en salto de linea para JSON Lines)
             output_payload = json.dumps(data_json) + '\n'
             
             output_record = {

@@ -25,6 +25,14 @@ def main():
         database=database,
         table_name=table
     )
+
+    # --- CORRECCION DE TIPO DE DATO ---
+    try:
+        dynamic_frame = dynamic_frame.resolveChoice(specs = [('Price_euros','cast:double')])
+    except:
+        pass
+    # ----------------------------------
+
     df = dynamic_frame.toDF()
     
     if df.count() == 0:
@@ -33,7 +41,7 @@ def main():
 
     df = df.withColumn("Price_euros", col("Price_euros").cast("double"))
     
-    # 2. LOGICA: Agregación por SISTEMA OPERATIVO
+    # 2. LOGICA: Agregacion por OS
     agg_df = df.groupBy("OpSys") \
         .agg(
             count("laptop_ID").alias("cantidad_dispositivos"),
@@ -48,9 +56,7 @@ def main():
     glueContext.write_dynamic_frame.from_options(
         frame=output_dynamic_frame,
         connection_type="s3",
-        connection_options={
-            "path": output_path
-        },
+        connection_options={ "path": output_path },
         format="parquet",
         format_options={"compression": "snappy"}
     )
