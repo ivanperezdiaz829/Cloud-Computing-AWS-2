@@ -1,18 +1,31 @@
 \documentclass[a4paper,12pt]{article}
 
 % -------------------------------------------------
-% PAQUETES BÁSICOS
+% 1. CODIFICACIÓN E IDIOMA
 % -------------------------------------------------
-\usepackage[spanish]{babel}
+\usepackage[spanish,es-tabla]{babel} % es-tabla para que diga "Tabla" en vez de "Cuadro"
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 
-% Fuentes
-\usepackage{mathptmx} % Times New Roman
-\usepackage{helvet}   % Arial (usada en títulos)
+% -------------------------------------------------
+% 2. FUENTES Y TIPOGRAFÍA
+% -------------------------------------------------
+% Cuerpo del texto: Times New Roman
+\usepackage{mathptmx}
+
+% Títulos: Arial (Helvética es el clon estándar en LaTeX)
+\usepackage{helvet}
+
+% Código fuente: Courier (Cumple requisito de monoespaciada específica)
+\usepackage{courier}
+
+% Establecer Times como la fuente por defecto
 \renewcommand{\familydefault}{\rmdefault}
 
-% Márgenes
+% -------------------------------------------------
+% 3. MÁRGENES Y GEOMETRÍA
+% -------------------------------------------------
+% Requisito: Sup, Inf, Der: 2.5cm | Izq: 3cm
 \usepackage[
   top=2.5cm,
   bottom=2.5cm,
@@ -20,23 +33,36 @@
   left=3cm
 ]{geometry}
 
-% Interlineado
+% -------------------------------------------------
+% 4. INTERLINEADO Y ALINEACIÓN
+% -------------------------------------------------
+% Requisito: 1.5 líneas
 \usepackage{setspace}
 \onehalfspacing
 
-% Justificación
+% Requisito: Texto justificado
 \usepackage{ragged2e}
 \justifying
 
-% Gráficos y tablas
+% -------------------------------------------------
+% 5. ELEMENTOS GRÁFICOS (FIGURAS Y TABLAS)
+% -------------------------------------------------
 \usepackage{graphicx}
-\usepackage{caption}
 \usepackage{booktabs}
 \usepackage{float}
+\usepackage{caption}
 
-% Código fuente
+% Configuración de pies de foto y títulos
+\captionsetup[table]{position=top, skip=5pt}    % Asegura espacio si el título va arriba
+\captionsetup[figure]{position=bottom, skip=5pt} % Asegura espacio si el pie va abajo
+
+% -------------------------------------------------
+% 6. CÓDIGO FUENTE (LISTINGS)
+% -------------------------------------------------
 \usepackage{listings}
 \usepackage{xcolor}
+
+% Definición de lenguajes extra
 \lstdefinelanguage{PowerShell}{
   morekeywords={aws, kinesis, create-stream},
   sensitive=false,
@@ -44,13 +70,33 @@
   morestring=[b]",
 }
 \lstdefinelanguage{Python}{
-  keywords={def, return, if, else, elif, for, while, import, from, as, class},
+  keywords={def, return, if, else, elif, for, while, import, from, as, class, try, except},
   sensitive=true,
   morecomment=[l]{\#},
   morestring=[b]",
 }
 
-% Hipervínculos
+% Configuración visual del código
+% Requisito: Fuente monoespaciada 10pt, fondo gris claro (#F5F5F5)
+\lstset{
+  basicstyle=\ttfamily\fontsize{10}{12}\selectfont, % \ttfamily usará Courier gracias al paquete cargado arriba
+  backgroundcolor=\color[HTML]{F5F5F5},
+  frame=single,             % Recuadro
+  rulecolor=\color{gray},   % Color del borde
+  breaklines=true,
+  captionpos=b,             % Títulos de código abajo (opcional, cambiar a 't' si se prefiere arriba)
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray},
+  stringstyle=\color{teal},
+  tabsize=2,
+  showstringspaces=false
+}
+
+% -------------------------------------------------
+% 7. HIPERVÍNCULOS
+% -------------------------------------------------
 \usepackage[hidelinks]{hyperref}
 \hypersetup{
   pdfborderstyle={/S/U/W 1},
@@ -58,55 +104,44 @@
   urlbordercolor={0.7 0.7 0.7},
 }
 
-% Encabezado y pie
+% -------------------------------------------------
+% 8. ENCABEZADO Y PIE DE PÁGINA
+% -------------------------------------------------
 \usepackage{fancyhdr}
 \usepackage{lastpage}
 
-% -------------------------------------------------
-% ENCABEZADO Y PIE DE PÁGINA
-% -------------------------------------------------
 \pagestyle{fancy}
 \fancyhf{}
 
+% Requisito: Nombre asignatura/práctica alineado a la derecha
 \fancyhead[R]{Computación en la Nube – Práctica 7}
+
+% Requisito: "Página X de Y" centrado en el pie
 \fancyfoot[C]{Página \thepage\ de \pageref{LastPage}}
 
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\footrulewidth}{0pt}
 
 % -------------------------------------------------
-% FORMATO DE TÍTULOS
+% 9. FORMATO DE TÍTULOS (SECCIONES)
 % -------------------------------------------------
 \usepackage{titlesec}
 
+% Requisito: Arial (sffamily), Negrita.
+% H1 (Section): 14 pt
 \titleformat{\section}
   {\normalfont\sffamily\bfseries\fontsize{14}{16}\selectfont}
   {\thesection}{1em}{}
 
+% H2 (Subsection): 13 pt
 \titleformat{\subsection}
   {\normalfont\sffamily\bfseries\fontsize{13}{15}\selectfont}
   {\thesubsection}{1em}{}
 
+% H3 (Subsubsection): 12 pt
 \titleformat{\subsubsection}
   {\normalfont\sffamily\bfseries\fontsize{12}{14}\selectfont}
   {\thesubsubsection}{1em}{}
-
-% -------------------------------------------------
-% CONFIGURACIÓN DE CÓDIGO
-% -------------------------------------------------
-\lstset{
-  basicstyle=\ttfamily\fontsize{10}{12}\selectfont,
-  backgroundcolor=\color[HTML]{F5F5F5},
-  frame=single,
-  breaklines=true,
-  captionpos=b,
-  numbers=left,
-  numberstyle=\tiny,
-  keywordstyle=\color{blue},
-  commentstyle=\color{gray},
-  stringstyle=\color{teal},
-  tabsize=2
-}
 
 %------------------------------------------------------------------------------------
 \begin{document}
