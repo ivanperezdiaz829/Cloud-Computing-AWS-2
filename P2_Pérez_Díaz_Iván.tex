@@ -51,7 +51,12 @@
 }
 
 % Hipervínculos
-\usepackage{hyperref}
+\usepackage[hidelinks]{hyperref}
+\hypersetup{
+  pdfborderstyle={/S/U/W 1},
+  linkbordercolor={0.7 0.7 0.7},
+  urlbordercolor={0.7 0.7 0.7},
+}
 
 % Encabezado y pie
 \usepackage{fancyhdr}
@@ -109,18 +114,22 @@
 \begin{titlepage}
   \centering
 
-  \vspace*{\fill} % Empuja el contenido hacia el centro vertical
+  \vspace*{2cm} % Empuja el contenido hacia el centro vertical
+
+  {\LARGE \textbf{Universidad de Las Palmas de Gran Canaria}}\\[0.3cm]
+  {\large Escuela de Ingeniería Informática}\\[0.3cm]
+  {\large Grado en Ingeniería Informática}\\[1.5cm]
+
+  \vspace*{2cm}
 
   {\Huge \textbf{Práctica 7}}\\[0.5cm]
   {\Large Computación en la Nube}\\[2cm]
 
-  {\Large \textbf{Universidad de Las Palmas de Gran Canaria}}\\[0.3cm]
-  {\large Escuela de Ingeniería Informática}\\[0.3cm]
-  {\large Grado en Ingeniería Informática}\\[1.5cm]
+  \vspace*{2cm}
 
-  \textbf{Curso académico:} 2025--2026\\
-  \textbf{Estudiante:} Iván Pérez Díaz\\
-  \textbf{Fecha de entrega:} \today
+  \large{\textbf{Curso académico:} 2025--2026}\\
+  \large{\textbf{Estudiante:} Iván Pérez Díaz}\\
+  \large{\textbf{Fecha de entrega:} \today}
 
   \vspace*{\fill} % Empuja el contenido hacia el centro vertical
 \end{titlepage}
@@ -134,29 +143,38 @@
 %------------------------------------------------------------------------------------
 \section{Introducción}
 
-El objetivo principal de esta práctica es el diseño, despliegue y validación de una arquitectura 
-completa utilizando el ecosistema de servicios gestionados de Amazon Web Services (AWS). Se busca implementar un pipeline de datos 
-robusto que abarque desde la generación de la información hasta su transformación final para 
-la toma de decisiones.
+El objetivo principal de esta práctica es el diseño, despliegue y validación de una 
+arquitectura completa en la nube, utilizando el ecosistema de servicios gestionados de 
+Amazon Web Services (AWS). Se busca implementar un pipeline de datos robusto que abarque 
+desde la generación de la información en tiempo real hasta las validaciones finales con SQL.
 
-La solución adopta un enfoque \textit{serverless} (sin servidor), minimizando la carga operativa 
-de administración de infraestructura. Los componentes clave seleccionados son:
+La solución adopta un enfoque \textit{serverless} (sin servidor), minimizando la carga 
+operativa de administración de infraestructura y permitiendo un escalado automático. 
+Los servicios clave seleccionados y su función en la arquitectura son:
+
 \begin{itemize}
-    \item \textbf{Amazon S3:} Actúa como la capa de persistencia centralizada (Data Lake), 
-    proporcionando almacenamiento escalable y duradero.
-    \item \textbf{Amazon Kinesis Data Streams:} Facilita la ingesta de datos de alta velocidad 
-    y baja latencia, desacoplando los productores de los consumidores.
-    \item \textbf{Amazon Kinesis Data Firehose:} Gestiona la entrega fiable de los datos en streaming 
-    hacia el almacenamiento, gestionando buffers y transformaciones intermedias.
-    \item \textbf{AWS Glue:} Proporciona un entorno unificado para el descubrimiento de metadatos (Data Catalog) 
-    y la ejecución de trabajos ETL (Extract, Transform, Load).
+    \item \textbf{Amazon S3 (Simple Storage Service):} Actúa como la capa de persistencia 
+    centralizada (Data Lake). Proporciona almacenamiento de objetos altamente escalable, 
+    duradero y seguro, permitiendo separar los datos en diferentes zonas según su estado de 
+    procesamiento (Raw vs Processed).
+    \item \textbf{Amazon Kinesis Data Streams:} Facilita la ingesta de datos de alta 
+    velocidad y baja latencia. Desacopla los productores de los consumidores, permitiendo 
+    que múltiples aplicaciones procesen el flujo de datos simultáneamente.
+    \item \textbf{Amazon Kinesis Data Firehose:} Gestiona la entrega fiable de los datos en 
+    streaming hacia el almacenamiento en S3. Incluye capacidades de transformación en vuelo 
+    (mediante AWS Lambda) y gestión de buffers para optimizar la escritura de ficheros.
+    \item \textbf{AWS Glue:} Proporciona un entorno unificado para el descubrimiento de 
+    metadatos (Data Catalog) y la ejecución de trabajos ETL (Extract, Transform, Load) 
+    basados en Apache Spark, facilitando la limpieza y agregación de datos sin gestionar 
+    servidores.
 \end{itemize}
 
-La arquitectura implementada procesa un conjunto de datos referente a un inventario de 
-dispositivos portátiles. Cada registro contiene atributos heterogéneos como marca, modelo, 
-resolución de pantalla, especificaciones de hardware (CPU, RAM, GPU), sistema operativo y precio (\texttt{deploy.ps1}). 
-El flujo termina con la generación de datasets analíticos en formato columnar, listos 
-para ser consultados mediante SQL.
+La arquitectura implementada procesa un conjunto de datos simulado referente a un inventario 
+transaccional de dispositivos portátiles. Cada registro contiene atributos heterogéneos como 
+marca, modelo, resolución de pantalla, especificaciones de hardware (CPU, RAM, GPU), 
+sistema operativo y precio (\href{https://github.com/ivanperezdiaz829/Cloud-Computing-AWS-2/blob/main/datos.json}{\texttt{datos.json}}). 
+El flujo termina con la generación de datasets analíticos en formato columnar (Parquet), listos 
+para ser consultados mediante SQL en herramientas como Amazon Athena.
 %------------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------------
@@ -166,234 +184,355 @@ para ser consultados mediante SQL.
 %------------------------------------------------------------------------------------
 \subsection{Configuración del bucket S3}
 
-La creación y 
-configuración del bucket S3 se realiza de forma automatizada mediante el script \texttt{deploy.ps1}, 
-aplicando principios de Infraestructura como Código (IaC). El nombre del bucket se genera de forma 
-dinámica concatenando el prefijo \texttt{datalake-laptops-} con el identificador único de la cuenta AWS, 
-asegurando así un espacio de nombres globalmente único.
+La creación y configuración del bucket S3 se realiza de forma automatizada mediante el script
+ de infraestructura como código (IaC) \hyperref[annex:deploy]{\texttt{deploy.ps1}}. El nombre 
+ del bucket se genera de forma dinámica concatenando el prefijo \texttt{datalake-laptops-} 
+ con el identificador único de la cuenta AWS (Account ID), asegurando así un espacio de 
+ nombres globalmente único, requisito indispensable en S3.
 
-La estructura de carpetas definida sigue las mejores prácticas de organización de datos por capas ("zonas"), 
-lo que facilita la gobernanza y el ciclo de vida de la información:
+\begin{lstlisting}[language=PowerShell, caption={Generación dinámica del nombre del bucket en deploy.ps1}]
+$env:BUCKET_NAME = "datalake-laptops-$($env:ACCOUNT_ID)"
+aws s3 mb s3://$env:BUCKET_NAME 2>$null
+\end{lstlisting}
+
+La estructura de carpetas definida sigue las de diseño de Data Lakes, organizando los 
+datos por capas ("zonas") para facilitar la gobernanza y el ciclo de vida de la información:
 
 \begin{itemize}
-  \item \texttt{raw/}: Conocida como "Landing Zone". Almacena los datos en bruto tal cual son 
-  recibidos desde Kinesis Firehose, en formato JSON. Esta capa es inmutable y sirve como fuente 
-  de verdad histórica.
-  \item \texttt{processed/}: O "Curated Zone". Contiene los resultados refinados generados por 
-  los trabajos ETL. Los datos aquí están limpios, enriquecidos y convertidos a formato Parquet 
-  para optimizar el rendimiento de lectura y reducir costes de almacenamiento.
-  \item \texttt{config/}: Repositorio para ficheros de configuración externos o parámetros que 
-  puedan requerir los procesos.
-  \item \texttt{scripts/}: Almacenamiento de los códigos fuente Python/Spark utilizados por los 
-  trabajos de AWS Glue.
-  \item \texttt{logs/}: Centralización de registros de eventos y errores para facilitar la depuración 
-  y auditoría del sistema.
+  \item \texttt{raw/}: Conocida como "Landing Zone". Almacena los datos en bruto tal cual 
+  son recibidos desde Kinesis Firehose, en formato JSON. Esta capa es inmutable y sirve 
+  como fuente de verdad histórica.
+  \item \texttt{processed/}: Contiene los resultados refinados generados 
+  por los trabajos ETL. Los datos aquí están limpios, enriquecidos y convertidos a formato 
+  Parquet.
+  \item \texttt{config/}, \texttt{scripts/}, \texttt{logs/}: Carpetas de soporte para scripts,
+  configuraciones y auditoría.
 \end{itemize}
-
-Esta segmentación permite aplicar políticas de seguridad y retención diferenciadas según la criticidad 
-y el uso de los datos en cada etapa.
 %------------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------------
 \subsection{Implementación del productor de datos}
 
-El componente productor es una aplicación desarrollada en Python que simula la generación de eventos 
-de negocio en tiempo real. Utilizando la librería \texttt{boto3} (SDK de AWS para Python), el script 
-lee un dataset base (\texttt{datos.json}) y envía registros individuales al servicio Amazon Kinesis 
-Data Streams.
+El componente productor es una aplicación desarrollada en Python 
+(\hyperref[annex:kinesis]{\texttt{kinesis.py}}) que simula la generación de eventos de 
+negocio en tiempo real. Utilizando la librería \texttt{boto3}, el script lee un dataset base 
+y envía registros individuales al servicio Amazon Kinesis Data Streams.
 
-Para garantizar una simulación realista de un entorno de streaming, el productor introduce latencias 
-artificiales entre envíos. Cada registro enviado incluye una clave de partición (\textit{Partition Key}), 
-en este caso basada en la marca del dispositivo (\texttt{Company}), lo que asegura que los datos 
-relacionados se dirijan al mismo shard, manteniendo el orden secuencial si fuera necesario.
+Un aspecto técnico crucial es el uso de la \textbf{Partition Key}. Cada registro enviado 
+incluye una clave de partición basada en la marca del dispositivo (\texttt{Company}). 
+Esto asegura que todos los datos de una misma marca (ej. "Apple" o "Dell") se dirijan 
+siempre al mismo shard, manteniendo el orden secuencial.
 
-\begin{lstlisting}[language=PowerShell, caption={Comando de creación del Stream con capacidad provisionada}]
-aws kinesis create-stream --stream-name energy-stream --shard-count 1
+\begin{lstlisting}[language=Python, caption={Envío de registros con Partition Key en kinesis.py}]
+response = kinesis.put_record(
+    StreamName=STREAM_NAME,
+    Data=json.dumps(laptop),
+    PartitionKey=str(company) # Agrupar shards por marca
+)
 \end{lstlisting}
-
-El uso de \texttt{shard-count 1} define la capacidad inicial de ingesta (1 MB/segundo o 1000 registros/segundo), 
-suficiente para el volumen de datos de esta práctica, aunque escalable horizontalmente según la demanda. 
-El código completo del productor, incluyendo el manejo de excepciones y logging, se incluye en el Anexo.
 %------------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------------
 \subsection{Configuración del consumidor (Kinesis Firehose)}
 
-Amazon Kinesis Data Firehose actúa como el puente entre el flujo de datos en tiempo real y el 
-almacenamiento persistente. Se ha configurado un \textit{Delivery Stream} que consume datos directamente 
-del stream de Kinesis y los deposita en la ruta \texttt{raw/} del bucket S3.
-
-Una característica crítica implementada en esta fase es la \textbf{Transformación de Datos mediante Lambda}. 
-Antes de escribir en S3, Firehose invoca una función AWS Lambda (\texttt{laptops-firehose-lambda}) que realiza 
-dos tareas fundamentales:
+Amazon Kinesis Data Firehose actúa como el puente entre el flujo de datos en tiempo real y 
+el almacenamiento persistente. Antes de escribir en S3, Firehose invoca una función AWS 
+Lambda (\hyperref[annex:firehose]{\texttt{firehose.py}}) que realiza tres tareas 
+fundamentales:
 \begin{enumerate}
-    \item \textbf{Enriquecimiento temporal:} Añade un campo \texttt{processed\_at} con la marca de tiempo UTC exacta del procesamiento.
-    \item \textbf{Formateo y Particionamiento:} Convierte el JSON estándar en JSON Lines (un registro por línea) y define las claves de partición dinámicas (\texttt{partitionKeyFromLambda}).
+    \item \textbf{Enriquecimiento temporal:} Añade un campo \texttt{processed\_at}.
+    \item \textbf{Formato JSON Lines:} Convierte el objeto JSON estándar añadiendo un salto 
+    de línea, requisito para que Athena procese múltiples objetos.
+    \item \textbf{Particionamiento Dinámico:} Define la clave de partición basada en la fecha.
 \end{enumerate}
 
-Esto habilita el "Particionamiento Dinámico" en S3, organizando los archivos físicamente en carpetas por fecha 
-(e.g., \texttt{processing\_date=2023-10-27/}), lo que mejora drásticamente la eficiencia de los crawlers y las consultas futuras.
-
-\begin{lstlisting}[language=Python, caption={Lógica de particionado y time-stamping en Lambda}]
-# Agrega timestamp de procesamiento
-data_json['processed_at'] = processing_time.isoformat()
-# Define la estructura de carpetas en S3 basada en la fecha
-partition_date = processing_time.strftime('%Y-%m-%d')
+\begin{lstlisting}[language=Python, caption={Transformación y formato JSON Lines en firehose.py}]
+# Re-codificar para Firehose (Debe terminar en salto de linea)
+output_payload = json.dumps(data_json) + '\n'
 \end{lstlisting}
-
-Además, se ha configurado un buffer en Firehose (por tamaño o por tiempo, 64MB o 60 segundos) para optimizar el tamaño de los archivos resultantes y reducir las llamadas a la API de S3.
 %------------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------------
 \subsection{Configuración de AWS Glue}
 
-AWS Glue se utiliza como componente central de integración de datos. La configuración se divide en dos fases: 
-metadatos y procesamiento.
+AWS Glue se utiliza para el descubrimiento de metadatos y el procesamiento ETL. Primero, 
+el script \hyperref[annex:deploy]{\texttt{deploy.ps1}} configura el crawler 
+\texttt{laptops-raw-crawler} que infiere el esquema de los datos en bruto.
 
-Primero, se define el \textbf{Data Catalog}. Se crea la base de datos lógica \texttt{laptops\_db} y se despliega un 
-Crawler (\texttt{laptops-raw-crawler}). Este crawler inspecciona periódicamente la ruta \texttt{raw/} en S3, infiere el esquema 
-de los archivos JSON (detectando tipos de datos como string, double, integer) y actualiza la tabla \texttt{laptops\_json} en el catálogo. 
-Esto permite que los datos no estructurados sean consultables como si fueran una tabla relacional.
+Posteriormente, se implementan dos trabajos (\textit{Glue Jobs}) basados en Apache Spark. 
+Un desafío técnico resuelto fue la inconsistencia de tipos de datos en el campo de precio 
+(\textit{Schema Evolution}), donde algunos valores eran enteros y otros decimales. 
+Se utilizó \texttt{resolveChoice} para unificar el tipo a \texttt{double}.
 
-Posteriormente, se implementan dos trabajos (\textit{Glue Jobs}) basados en Spark:
-\begin{itemize}
-    \item \textbf{Analytics por Marca:} Agrega datos por fabricante, calculando métricas como precio medio, máximo y conteo de modelos.
-    \item \textbf{Analytics por SO:} Realiza un análisis similar segmentado por sistema operativo.
-\end{itemize}
-
-Un desafío técnico resuelto en los scripts fue la inconsistencia de tipos de datos (Schema Evolution). Se utilizó la función 
-\texttt{resolveChoice} de DynamicFrame para castear explícitamente el campo \texttt{Price\_euros} a \texttt{double}, evitando errores 
-cuando Spark encontraba enteros y decimales mezclados. Finalmente, los datos se escriben en formato \textbf{Parquet} con compresión 
-\textbf{Snappy}, un estándar de la industria que ofrece un esquema columnar altamente eficiente para analítica.
+\begin{lstlisting}[language=Python, caption={Resolución de ambigüedad de tipos en laptops\_analytics\_brand.py}]
+# CORRECCION DE TIPO DE DATO (CHOICE)
+# Esto fuerza a que Price_euros sea tratado siempre como double
+try:
+    dynamic_frame = dynamic_frame.resolveChoice(specs = [('Price_euros','cast:double')])
+except:
+    logger.warning("No se requirio resolveChoice o fallo...")
+\end{lstlisting}
 %------------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------------
 \section{Diagrama del flujo de datos}
 
-La arquitectura implementada establece un pipeline unidireccional que garantiza la integridad y trazabilidad del dato. 
-El flujo de la información atraviesa las siguientes etapas secuenciales:
+La arquitectura implementada establece un pipeline unidireccional que 
+garantiza la integridad, trazabilidad y escalabilidad del dato. El flujo 
+de la información atraviesa las siguientes etapas secuenciales:
 
 \begin{enumerate}
-    \item \textbf{Generación:} El script productor inyecta registros JSON en el Stream de Kinesis.
-    \item \textbf{Buffer y Transformación:} Kinesis Firehose recoge los registros, invoca a la función Lambda para añadir metadatos y acumula los datos en memoria.
-    \item \textbf{Almacenamiento Raw:} Firehose vuelca los bloques de datos en la zona \texttt{raw} de S3, particionados por fecha.
-    \item \textbf{Descubrimiento:} El Crawler de Glue escanea S3 y actualiza el esquema en el Catálogo de Datos.
-    \item \textbf{Procesamiento Batch:} Los Glue Jobs leen del catálogo, ejecutan transformaciones Spark en memoria distribuida y agregan la información.
-    \item \textbf{Almacenamiento Processed:} Los resultados finales se escriben en la zona \texttt{processed} de S3 en formato Parquet.
+    \item \textbf{Generación:} El script productor inyecta registros JSON 
+    en el Stream de Kinesis simulando transacciones.
+    \item \textbf{Transporte y Buffer:} Kinesis Data Streams recibe los 
+    datos y Kinesis Firehose los consume, gestionando la memoria intermedia.
+    \item \textbf{Transformación en Vuelo:} Firehose invoca a la función 
+    Lambda para añadir metadatos temporales y formatear a JSON Lines.
+    \item \textbf{Almacenamiento Raw:} Firehose vuelca los bloques de datos 
+    en la zona \texttt{raw} de S3, particionados por fecha.
+    \item \textbf{Catalogación:} El Crawler de Glue escanea S3 y actualiza 
+    el esquema en el Catálogo de Datos.
+    \item \textbf{Procesamiento Batch:} Los Glue Jobs leen del catálogo, 
+    ejecutan transformaciones Spark en memoria distribuida y agregan la 
+    información.
+    \item \textbf{Almacenamiento Processed:} Los resultados finales se 
+    escriben en la zona \texttt{processed} de S3 en formato Parquet.
+    \item \textbf{Consumo:} Amazon Athena utiliza el catálogo actualizado 
+    para lanzar consultas SQL sobre los datos procesados.
 \end{enumerate}
 
-La Figura~\ref{fig:flujo-datos} ilustra gráficamente esta topología, destacando la separación entre la capa de streaming (Kinesis) y la capa batch (Glue).
-% Aquí se incluye el diagrama de arquitectura.
+La Figura 1 ilustra gráficamente la topología completa de la solución desplegada.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{images/arquitectura.jpeg} 
+    \caption{Diagrama de arquitectura del Data Lake Serverless en AWS.}
+    \label{fig:arquitectura}
+\end{figure}
 %------------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------------
 \section{Presupuesto y estimación de costes}
 
-La gestión de costes es fundamental en arquitectura Cloud. La estimación presentada a continuación se basa en la calculadora oficial de AWS (AWS Pricing Calculator) para la región \texttt{us-east-1}, considerando un escenario de operación mensual estándar.
+La gestión de costes es fundamental en arquitectura Cloud. La estimación presentada a 
+continuación se basa en la calculadora oficial de AWS (AWS Pricing Calculator) para la región 
+\texttt{us-east-1}, considerando un escenario de operación mensual estándar con un flujo de 
+datos moderado.
 
-El modelo de costes varía según el servicio:
 \begin{itemize}
-    \item \textbf{Kinesis:} Se factura por "Shard Hour". Un shard activo 24/7 tiene un coste fijo, independientemente del tráfico (hasta su límite).
-    \item \textbf{S3:} Modelo "Pay-as-you-go" basado en almacenamiento GB/mes y número de peticiones PUT/GET.
-    \item \textbf{Glue:} Facturación por DPU-Hour (Data Processing Unit). Se cobra por el tiempo de ejecución de los jobs y crawlers, con un mínimo de facturación.
-    \item \textbf{Lambda:} Coste basado en número de invocaciones y GB-segundo de memoria utilizada.
+    \item \textbf{Kinesis:} 1 Shard activo durante 730 horas/mes (24x7).
+    \item \textbf{Glue:} Ejecución diaria de Crawlers y Jobs ETL (Worker Type G.1X), consumiendo recursos bajo demanda.
 \end{itemize}
 
-\begin{table}[H]
-\centering
-\caption{Estimación detallada de costes de servicios AWS (Escenario mensual)}
-\begin{tabular}{lcc}
-\toprule
-Servicio & Coste mensual (€) & Coste anual (€) \\
-\midrule
-Amazon S3 (Almacenamiento y Peticiones) & 5 & 60 \\
-Amazon Kinesis Data Streams (1 Shard) & 15 & 180 \\
-AWS Glue (Crawlers y Jobs ETL diarios) & 10 & 120 \\
-AWS Lambda (Computación y Free Tier) & 2 & 24 \\
-\midrule
-\textbf{Total Estimado} & \textbf{32} & \textbf{384} \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Cabe destacar que, para cargas de trabajo de laboratorio o desarrollo, muchos de estos costes se mitigan gracias a la Capa Gratuita (Free Tier) de AWS, especialmente en Lambda y S3.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{images/price.jpg}
+    \caption{Captura de la calculadora oficial de AWS con el desglose de costes estimado.}
+    \label{fig:presupuesto}
+\end{figure}
 %------------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------------
 \section{Conclusiones}
 
-La realización de esta práctica ha permitido validar experimentalmente una arquitectura moderna de Data Lake sobre AWS. Se ha demostrado cómo la combinación de servicios desacoplados (Kinesis para transporte, S3 para almacenamiento, Glue para cómputo) ofrece una solución escalable, flexible y mantenible.
+En esta práctica se han asentado conocimientos sobre el diseño y despliegue de una arquitectura para gestionar la incerción y procesamiento de datos dentro de la nube de AWS, adicionalmente, se ha aprendido a utilizar servicios como Kinesis, AWS Glue y S3.
 
 Entre las principales lecciones aprendidas y dificultades superadas, destacan:
 \begin{itemize}
-    \item \textbf{Gestión de Tipos de Datos:} La importancia de manejar la heterogeneidad de los datos (enteros vs floats) en Spark para evitar fallos en tiempo de ejecución.
-    \item \textbf{Particionamiento:} Cómo el particionamiento dinámico en la ingesta mejora significativamente la organización del Data Lake.
-    \item \textbf{Infraestructura como Código:} El valor de utilizar scripts (PowerShell/AWS CLI) para desplegar recursos de forma repetible frente a la configuración manual en consola.
+    \item \textbf{Schema Evolution:} La importancia de manejar la heterogeneidad de los datos 
+    numéricos (enteros vs floats) en Spark mediante \texttt{resolveChoice}, dado que el desconocimiento
+    de las mismas ocasionaron muchos problemas y errores.
+    \item \textbf{Infraestructura como Código:} El uso de scripts PowerShell 
+    (\hyperref[annex:deploy]{\texttt{deploy}}, \hyperref[annex:limpieza]{\texttt{clean}} y \hyperref[annex:crawler]{\texttt{aws-crawler}}) 
+    que ha permitido desplegar y destruir la infraestructura de forma repetible, evitando costes 
+    fantasma y de manera automatizada.
+    \item \textbf{Particionamiento:} Se ha comprobado cómo el particionamiento dinámico en la 
+    ingesta mejora la organización del Data Lake.
 \end{itemize}
 
-Como líneas de trabajo futuro, la arquitectura podría evolucionar incorporando \textbf{Amazon Athena} para consultas SQL interactivas sobre los datos procesados, o \textbf{Amazon QuickSight} para la visualización de cuadros de mando (dashboards) de inteligencia de negocios.
 %------------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------------
 \section{Referencias y bibliografía}
 
 \begin{itemize}
-  \item Amazon Web Services. (2024). \textit{Amazon Kinesis Data Streams Developer Guide}. Recuperado de la documentación oficial de AWS.
-  \item Amazon Web Services. (2024). \textit{AWS Glue Developer Guide}. Sección sobre ETL Jobs y DynamicFrames.
-  \item Amazon Web Services. (2024). \textit{Amazon S3 User Guide}. Best practices for Data Lakes.
-  \item Apache Spark. (2024). \textit{PySpark Documentation}. DataFrame API y tipos de datos.
+    % Documentación Oficial
+    \item Amazon Web Services. (2026). \textit{Amazon Kinesis Data Streams Developer Guide}. Recuperado de la documentación oficial de AWS.
+    \item Amazon Web Services. (2026). \textit{AWS Glue Developer Guide}. Sección sobre ETL Jobs y DynamicFrames.
+    \item Amazon Web Services. (2026). \textit{Amazon S3 User Guide}. Best practices for Data Lakes.
+    \item Apache Spark. (2026). \textit{PySpark Documentation}. DataFrame API y tipos de datos.
+
+    % Herramientas Web
+    \item Amazon Web Services. (2026). \textit{AWS Pricing Calculator} [Web application]. https://calculator.aws/
+    \item Lucid Software Inc. (2026). \textit{Lucidchart} [Web application]. https://www.lucidchart.com/
+
+    % Inteligencia Artificial
+    \item Google. (2026). \textit{Gemini} (Versión 1.5) [Large language model]. https://gemini.google.com/
+    \item OpenAI. (2026). \textit{ChatGPT} (Versión GPT-4) [Large language model]. https://chat.openai.com/
+
+    % Datos y Repositorios
+    \item Mohammad Anas. (2023). \textit{Laptop Price Dataset} [Data set]. Kaggle. https://www.kaggle.com/datasets/anas123siddiqui/laptops
+    \item Pérez, I. (2026). \textit{Cloud-Computing-AWS-2} [Software repository]. GitHub. https://github.com/ivanperezdiaz829/Cloud-Computing-AWS-2
 \end{itemize}
 %------------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------------
 \section{Anexos}
 
-En este apartado se incluye el código fuente completo desarrollado para la orquestación, ingesta y transformación de datos. Estos scripts constituyen la base operativa de la práctica.
+El código fuente completo, así como el historial de versiones y la documentación adicional, se encuentra disponible en el siguiente repositorio público de GitHub:
 
-\subsection{Anexo A. Script de despliegue}
+\begin{center}
+    \href{https://github.com/ivanperezdiaz829/Cloud-Computing-AWS-2}{\textbf{https://github.com/ivanperezdiaz829/Cloud-Computing-AWS-2}}
+\end{center}
+
+A continuación se incluye una copia estática de los scripts principales utilizados para la realización de la práctica.
+
+\subsection{Anexo A. Runmap de Ejecución}
+\label{annex:runmap}
+Es una guía paso a paso de las ejecuciones necesarias para desplegar, probar y destruir la arquitectura.
+\lstinputlisting[
+  language=PowerShell,
+  caption={Script runmap.ps1: Ejecución completa de la práctica}
+]{./runmap.ps1}
+
+\subsubsection*{Guía Visual de Ejecución}
+
+\textbf{Paso 1: Despliegue de Infraestructura} \\
+Ejecución de \texttt{deploy.ps1}. Se valida la creación del Bucket S3 que actuará como Data Lake.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{images/bucket_S3.jpg}
+    \caption{Creación del Bucket S3 y estructura de carpetas.}
+\end{figure}
+
+\textbf{Paso 2: Ingesta de Datos} \\
+Monitorización del stream de Kinesis recibiendo los registros enviados por el productor Python.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{images/stream.jpg}
+    \caption{Métricas de ingesta en Kinesis Data Streams.}
+\end{figure}
+
+\textbf{Paso 3: Catalogación Raw} \\
+Verificación de que los datos han aterrizado en la zona \texttt{raw/} de S3 tras pasar por Firehose y antes de ser catalogados.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{images/post_Kinesis.jpg}
+    \caption{Datos JSON aterrizados en S3 (Zona Raw).}
+\end{figure}
+
+\textbf{Paso 4: Procesamiento ETL} \\
+Panel de AWS Glue mostrando la ejecución exitosa (\textit{Succeeded}) de los Jobs de Spark para Marcas y Sistemas Operativos.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{images/ETL.jpg}
+    \caption{Estado de ejecución de los Glue Jobs.}
+\end{figure}
+
+\textbf{Paso 5: Resultados Procesados} \\
+Tras la ejecución del crawler de resultados, se generan las carpetas particionadas en formato Parquet en la zona \texttt{processed/}.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{images/laptop_brand.jpg}
+    \includegraphics[width=1.0\textwidth]{images/laptop_os.jpg}
+    \caption{Estructura de salida en S3 para Marcas (up) y SO (down).}
+\end{figure}
+
+\textbf{Paso 6: Consultas SQL (Athena)} \\
+Validación de los datos mediante consultas SQL estándar sobre las tablas catalogadas.
+
+\textit{Consulta 1: Consulta al coste promedio a partir del SO.}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/SQL_1.jpg}
+    \caption{Consulta SQL de verificación inicial.}
+\end{figure}
+
+\textit{Consulta 2: Análisis de precios por Marca.}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/SQL_2.jpg}
+    \caption{Ranking de marcas por precio promedio.}
+\end{figure}
+
+\textit{Consulta 3: Análisis de la cantidad media de RAM.}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/SQL_3.jpg}
+    \caption{Agregación de dispositivos por Sistema Operativo.}
+\end{figure}
+
+\subsection{Anexo B. Script de despliegue}
+\label{annex:deploy}
 Este script automatiza la creación de la infraestructura (Buckets, Roles, Streams, Lambdas y Jobs).
 \lstinputlisting[
   language=PowerShell,
   caption={Script deploy.ps1: Automatización de infraestructura AWS}
 ]{./deploy.ps1}
 
-\subsection{Anexo B. Consumidor Firehose}
-Función Lambda encargada de la transformación y particionado temporal de los datos antes de su persistencia.
+\subsection{Anexo C. Productor Kinesis}
+\label{annex:kinesis}
+Script desarrollado en Python encargado de la simulación y envío de datos transaccionales al servicio Kinesis Data Streams.
+\lstinputlisting[
+  language=Python,
+  caption={Script kinesis.py: Productor de datos a Kinesis}
+]{./kinesis.py}
+
+\subsection{Anexo D. Transformación Firehose}
+\label{annex:firehose}
+Función Lambda encargada de la transformación y particionado temporal de los datos antes de su persistencia en S3.
 \lstinputlisting[
   language=Python,
   caption={Script firehose.py: Lógica de transformación Lambda}
 ]{./firehose.py}
 
-\subsection{Anexo C. Análisis por marca}
+\subsection{Anexo E. Análisis por Marca (Spark)}
+\label{annex:brand}
 Job de Spark ETL para la agregación de métricas de negocio basadas en el fabricante.
 \lstinputlisting[
   language=Python,
   caption={Script laptops\_analytics\_brand.py: ETL de marcas}
 ]{./laptops_analytics_brand.py}
 
-\subsection{Anexo D. Análisis por sistema operativo}
+\subsection{Anexo F. Análisis por Sistema Operativo (Spark)}
+\label{annex:os}
 Job de Spark ETL para la agregación de métricas basadas en el Sistema Operativo.
 \lstinputlisting[
   language=Python,
   caption={Script laptops\_analytics\_so.py: ETL de Sistemas Operativos}
 ]{./laptops_analytics_so.py}
 
-\subsection{Anexo E. Crawler de AWS Glue}
-Configuración JSON utilizada para desplegar el Crawler de descubrimiento de metadatos.
+\subsection{Anexo G. Crawler de Resultados}
+\label{annex:crawler}
+Script para catalogar los resultados finales procesados en formato Parquet.
 \lstinputlisting[
   language=PowerShell,
   caption={Script aws\_crawler.ps1: Definición del Crawler}
 ]{./aws_crawler.ps1}
 
-\subsection{Anexo F. Script de limpieza}
+\subsection{Anexo H. Script de limpieza}
+\label{annex:clean}
 Script crítico para la eliminación de recursos y prevención de costes tras la finalización del laboratorio.
 \lstinputlisting[
   language=PowerShell,
   caption={Script clean.ps1: Destrucción de recursos}
 ]{./clean.ps1}
 
-Se ha utilizado inteligencia artificial únicamente como herramienta de apoyo
-para la redacción y corrección de estilo de la memoria técnica, garantizando que todo el código y la arquitectura han sido implementados y validados por el estudiante.
-%------------------------------------------------------------------------------------
+\subsection{Anexo I. Dataset de Origen}
+\label{annex:dataset}
+Archivo JSON que contiene el inventario de dispositivos utilizado por el productor de datos.
+\begin{center}
+    \href{https://github.com/ivanperezdiaz829/Cloud-Computing-AWS-2/blob/main/datos.json}{\textbf{Ver archivo datos.json en GitHub}}
+\end{center}
 
+\subsection{Anexo J. Uso de la Inteligencia Artificial Generativa}
+
+Se han utilizado principalmente 2 herramenientas de IA generativa para asistir en
+la creación del formato del documento con el objetivo de que siga las restricciones impuestas,
+así como para la revisión ortográfica y el ordenamiento lógico de los contenidos
+de la memoria (siempre dentro del formato y estructura requerida).
+\begin{itemize}
+    \item \textbf{ChatGPT-4 (OpenAI):} Se ha empleado para generar la estructura inicial del documento con el formato básico.
+    \item \textbf{Gemini (Google):} Se ha utilizado como asistente a lo largo de la realización del proyecto, para obtener definiciones de algunas de las tecnologías explicadas en el presente documento y para la resolución de errores como los surgidos por el problema de tipos en el precio de los ordenadores del dataset.
+\end{itemize}
 \end{document}

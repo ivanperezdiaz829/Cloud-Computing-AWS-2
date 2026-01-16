@@ -31,10 +31,8 @@ def main():
         dynamic_frame = dynamic_frame.resolveChoice(specs = [('Price_euros','cast:double')])
     except:
         pass
-    # ----------------------------------
 
-    df = dynamic_frame.toDF()
-    
+    df = dynamic_frame.toDF()   
     if df.count() == 0:
         logger.warning("Sin datos.")
         return
@@ -60,8 +58,6 @@ def main():
         format="parquet",
         format_options={"compression": "snappy"}
     )
-    
     logger.info(f"Job completado.")
-
 if __name__ == "__main__":
     main()

@@ -35,7 +35,6 @@ def main():
         dynamic_frame = dynamic_frame.resolveChoice(specs = [('Price_euros','cast:double')])
     except:
         logger.warning("No se requirio resolveChoice o fallo, continuando...")
-    # -------------------------------------------
 
     df = dynamic_frame.toDF()
     
@@ -43,7 +42,7 @@ def main():
         logger.warning("No se encontraron datos de laptops. Finalizando.")
         return
 
-    # Asegurar cast final (por si acaso)
+    # Asegurar cast final
     df = df.withColumn("Price_euros", col("Price_euros").cast("double"))
 
     # 2. LOGICA: Agregacion por MARCA

@@ -1,4 +1,4 @@
-# 1. Asegurarnos de que tenemos las variables (por si acaso)
+# 1. Asegurar variables de entorno
 if (-not $env:BUCKET_NAME) { $env:BUCKET_NAME = "datalake-laptops-098189193517" }
 if (-not $env:ROLE_ARN) { $env:ROLE_ARN = "arn:aws:iam::098189193517:role/LabRole" }
 

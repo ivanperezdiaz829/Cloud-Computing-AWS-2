@@ -12,7 +12,6 @@ def lambda_handler(event, context):
             data_json = json.loads(payload)
             
             # 2. Aniadir metadatos de procesamiento (Timestamp)
-            # Esto nos servira para saber cuando se proceso el registro
             processing_time = datetime.datetime.now(datetime.timezone.utc)
             data_json['processed_at'] = processing_time.isoformat()
             
@@ -35,7 +34,7 @@ def lambda_handler(event, context):
             output.append(output_record)
             
         except Exception as e:
-            # Si falla un registro, lo marcamos como error pero no paramos todo
+            # Si falla un registro, se marca como failed pero no se detiene todo el lote
             print(f"Error processing record: {e}")
             output.append({
                 'recordId': record['recordId'],
